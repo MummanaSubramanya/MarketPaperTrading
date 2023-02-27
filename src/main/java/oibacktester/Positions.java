@@ -93,6 +93,21 @@ public class Positions {
         return pnl;
     }
 
+    public static boolean positionExists(String scriptCode, String orderType) {
+        if(positions.has(scriptCode) && 
+            positions.getJSONObject(scriptCode).getString("status").equalsIgnoreCase("open") 
+            
+        ){
+            if(orderType.equalsIgnoreCase("buy") && positions.getJSONObject(scriptCode).getInt("quantity") > 0) {
+                return true;
+            }else if(orderType.equalsIgnoreCase("sell") && positions.getJSONObject(scriptCode).getInt("quantity") < 0) {
+                return true;
+            }
+            //return true;
+        }
+        return false;
+    }
+    
     public static int noOfPositions(){
         return positions.length();
     }
