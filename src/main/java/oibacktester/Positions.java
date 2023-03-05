@@ -2,6 +2,7 @@ package oibacktester;
 
 import java.util.Iterator;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class Positions {
@@ -9,15 +10,25 @@ public class Positions {
     static JSONObject positions = new JSONObject();
 
     public static void main(String[] args){
-        placeOrder("1234", "buy",100, 100.0, 0.0);
-        placeOrder("0987", "sell",50, 100.0, 0.0);
+        // placeOrder("1234", "buy",100, 100.0, 0.0);
+        // placeOrder("1234", "sell",100, 0.0, 101.0);
+        // placeOrder("1234", "buy",200, 100.0, 0.0);
+        // placeOrder("1234", "sell",200, 0.0, 101.0);
 
-        placeOrder("0987", "buy",50, 0.0, 101.0);
-        placeOrder("1234", "buy",100, 99.0, 0.0);
+        // Positions.placeOrder("BANKNIFTY2330239900CE", "buy", 25, 560.0, 0.0);
+        // printPositions();
+        // Positions.placeOrder("BANKNIFTY2330239900CE", "sell", 25, 0.0, 577.25);
+        // printPositions();
+        // Positions.placeOrder("BANKNIFTY2330239900CE", "sell", 25, 577.25, 0.0);
+        // printPositions();
+        // Positions.placeOrder("BANKNIFTY2330239900CE", "buy", 25, 0.0, 540.0);
+        // printPositions();
+        // Positions.placeOrder("BANKNIFTY2330239900CE", "buy", 25, 540.0, 0.0);
+
         printPositions();
     }
 
-    public static boolean placeOrder(String scriptCode, String type, int qty, Double priceAt, Double exitAt){
+    public static boolean placeOrder(String entryTime, String scriptCode, String type, int qty, Double priceAt, Double exitAt){
         JSONObject positionData = new JSONObject();
         if(!positions.has(scriptCode)){
             positionData.put("entryOrderType", type);
@@ -27,44 +38,48 @@ public class Positions {
             positionData.put("quantity",  qty);
             positionData.put("pnl",0);
             positionData.put("exitPriceAt",0);
+            positionData.put("time", entryTime);
         }else {
+            double existingPnl = positions.getJSONObject(scriptCode).getDouble("pnl");
             double existingEntryPriceAt = positions.getJSONObject(scriptCode).getDouble("entryPriceAt");
             int existingQty = positions.getJSONObject(scriptCode).getInt("quantity");
-            double existingPnl = positions.getJSONObject(scriptCode).getDouble("pnl");
 
-            if(type != positions.getJSONObject(scriptCode).getString("entryOrderType")){
-                positionData.put("entryOrderType", positions.getJSONObject(scriptCode).getString("entryOrderType"));
-                positionData.put("entryPriceAt", existingEntryPriceAt);
-                positionData.put("quantity",  existingQty - qty);
-                positionData.put("pnl",0);
-                if(existingQty == qty) {
+            if(!positions.getJSONObject(scriptCode).getString("status").equalsIgnoreCase("closed")){
+                if(type != positions.getJSONObject(scriptCode).getString("entryOrderType")){
+                    positionData.put("entryOrderType",  positions.getJSONObject(scriptCode).getString("entryOrderType"));
+                    positionData.put("entryPriceAt", existingEntryPriceAt);
+                    positionData.put("quantity",  existingQty - qty);
+                    positionData.put("pnl",0);
                     positionData.put("exitOrderType", type);
                     positionData.put("status","closed");
                     positionData.put("exitPriceAt",exitAt);
                     if(type == "buy"){
-                        positionData.put("pnl", (existingEntryPriceAt - exitAt) * existingQty);
+                        positionData.put("pnl", existingPnl + (existingEntryPriceAt - exitAt) * existingQty);
                     }else {
-                        positionData.put("pnl", (exitAt - existingEntryPriceAt) * existingQty);
+                        positionData.put("pnl", existingPnl + (exitAt - existingEntryPriceAt) * existingQty);
                     }
+                    positionData.put("time", entryTime);
                 }else {
+                    positionData.put("entryOrderType",  positions.getJSONObject(scriptCode).getString("entryOrderType"));
                     positionData.put("exitOrderType", "");
                     positionData.put("status","open");
+                    positionData.put("entryPriceAt", (existingEntryPriceAt * existingQty + priceAt * qty)/(existingQty+qty));
+                    positionData.put("quantity",  existingQty + qty);
+                    positionData.put("pnl", existingPnl);
                     positionData.put("exitPriceAt",0);
-                    if(type == "buy"){
-                        positionData.put("pnl", existingPnl + (existingEntryPriceAt - exitAt) * qty);
-                    }else {
-                        positionData.put("pnl", existingPnl + (exitAt - existingEntryPriceAt) * qty);
-                    }
+                    positionData.put("time", entryTime);
                 }
             }else {
-                positionData.put("entryOrderType", positions.getJSONObject(scriptCode).getString("entryOrderType"));
+                positionData.put("entryOrderType", type);
                 positionData.put("exitOrderType", "");
                 positionData.put("status","open");
-                positionData.put("entryPriceAt", (existingEntryPriceAt * existingQty + priceAt * qty)/(existingQty+qty));
-                positionData.put("quantity",  existingQty + qty);
+                positionData.put("entryPriceAt", priceAt);
+                positionData.put("quantity",  qty);
                 positionData.put("pnl",existingPnl);
                 positionData.put("exitPriceAt",0);
+                positionData.put("time", entryTime);
             }
+            
         }
         // positionData.put("pnl",0);
         positions.put(scriptCode, positionData);
@@ -95,15 +110,20 @@ public class Positions {
 
     public static boolean positionExists(String scriptCode, String orderType) {
         if(positions.has(scriptCode) && 
-            positions.getJSONObject(scriptCode).getString("status").equalsIgnoreCase("open") 
-            
+            positions.getJSONObject(scriptCode).getString("status").equalsIgnoreCase("open") && orderType.equalsIgnoreCase(positions.getJSONObject(scriptCode).getString("entryOrderType"))
         ){
-            if(orderType.equalsIgnoreCase("buy") && positions.getJSONObject(scriptCode).getInt("quantity") > 0) {
-                return true;
-            }else if(orderType.equalsIgnoreCase("sell") && positions.getJSONObject(scriptCode).getInt("quantity") < 0) {
-                return true;
-            }
-            //return true;
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean positionExists(String scriptCode, String orderType, int qty) {
+        if(positions.has(scriptCode) && 
+            positions.getJSONObject(scriptCode).getString("status").equalsIgnoreCase("open") && 
+            orderType.equalsIgnoreCase(positions.getJSONObject(scriptCode).getString("entryOrderType")) && 
+            qty == positions.getJSONObject(scriptCode).getInt("quantity")
+        ){
+            return true;
         }
         return false;
     }
@@ -112,9 +132,15 @@ public class Positions {
         return positions.length();
     }
 
+    public static JSONObject getPositions() {
+        return positions;
+    }
+
     public static void printPositions(){
         System.out.println(positions);
     }
 
+    public static void clearPositions() {
+        positions = new JSONObject();
+    }
 }
-
