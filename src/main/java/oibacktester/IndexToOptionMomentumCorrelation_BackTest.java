@@ -1,6 +1,8 @@
 package oibacktester;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.json.JSONArray;
 
@@ -11,8 +13,8 @@ public class IndexToOptionMomentumCorrelation {
     static String expiryDate = "23309";
     static int candleSize = 1;
     static double optionDelta = 0.5;
-    static String index = "NIFTY BANK";
-    static int qty = 25;
+    static String index = "NIFTY 50";
+    static int qty = 50;
     static int INDEX_OPEN_SP = 0;
     static ArrayList<String> indexStrikePrices = new ArrayList<String>();
 
@@ -110,6 +112,13 @@ public class IndexToOptionMomentumCorrelation {
                 pe4ScriptName = "NIFTY" + expiryDate + ((INDEX_OPEN_SP+50)/50*50)  +"PE";
                 pe5ScriptName = "NIFTY" + expiryDate + ((INDEX_OPEN_SP)/50*50)  +"PE";
             }
+
+            Map<Integer,String> ceScriptNameMap = new HashMap();
+            ceScriptNameMap.put(1, ce1ScriptName + "," + pe1ScriptName);
+            ceScriptNameMap.put(2, ce2ScriptName + "," + pe2ScriptName);
+            ceScriptNameMap.put(3, ce3ScriptName + "," + pe3ScriptName);
+            ceScriptNameMap.put(4, ce4ScriptName + "," + pe4ScriptName);
+            ceScriptNameMap.put(5, ce5ScriptName + "," + pe5ScriptName);
             
             String ce1ScriptCode = ZerodhaWrapper.getScriptCode(ce1ScriptName);
             String ce2ScriptCode = ZerodhaWrapper.getScriptCode(ce2ScriptName);
@@ -140,44 +149,46 @@ public class IndexToOptionMomentumCorrelation {
             String orderType = "";
             String lastOrderTime = "";
 
-            for(int i = 0; i < indexTicks.length(); i++){
-                String time = indexTicks.getJSONArray(i).getString(0);
-                double open = indexTicks.getJSONArray(i).getDouble(1);
-                double close = indexTicks.getJSONArray(i).getInt(4);
+            for(int i = 1; i < indexTicks.length(); i++){
+                String time = indexTicks.getJSONArray(i-1).getString(0);
+                double open = indexTicks.getJSONArray(i-1).getDouble(1);
+                double close = indexTicks.getJSONArray(i-1).getInt(4);
 
                 
-                double ce1Open = ce1Ticks.getJSONArray(i).getDouble(1);
-                double ce1Close = ce1Ticks.getJSONArray(i).getDouble(4);
+                double ce1Open = ce1Ticks.getJSONArray(i-1).getDouble(1);
+                double ce1Close = ce1Ticks.getJSONArray(i-1).getDouble(4);
 
-                double ce2Open = ce2Ticks.getJSONArray(i).getDouble(1);
-                double ce2Close = ce2Ticks.getJSONArray(i).getDouble(4);
+                double ce2Open = ce2Ticks.getJSONArray(i-1).getDouble(1);
+                double ce2Close = ce2Ticks.getJSONArray(i-1).getDouble(4);
 
-                double ce3Open = ce3Ticks.getJSONArray(i).getDouble(1);
-                double ce3Close = ce3Ticks.getJSONArray(i).getDouble(4);
+                double ce3Open = ce3Ticks.getJSONArray(i-1).getDouble(1);
+                double ce3Close = ce3Ticks.getJSONArray(i-1).getDouble(4);
 
-                double ce4Open = ce4Ticks.getJSONArray(i).getDouble(1);
-                double ce4Close = ce4Ticks.getJSONArray(i).getDouble(4);
+                double ce4Open = ce4Ticks.getJSONArray(i-1).getDouble(1);
+                double ce4Close = ce4Ticks.getJSONArray(i-1).getDouble(4);
 
-                double ce5Open = ce5Ticks.getJSONArray(i).getDouble(1);
-                double ce5Close = ce5Ticks.getJSONArray(i).getDouble(4);
+                double ce5Open = ce5Ticks.getJSONArray(i-1).getDouble(1);
+                double ce5Close = ce5Ticks.getJSONArray(i-1).getDouble(4);
+                double ce5CurrentOpen = ce5Ticks.getJSONArray(i).getDouble(1);
 
-                double pe1Open = pe1Ticks.getJSONArray(i).getDouble(1);
-                double pe1Close = pe1Ticks.getJSONArray(i).getDouble(4);
+                double pe1Open = pe1Ticks.getJSONArray(i-1).getDouble(1);
+                double pe1Close = pe1Ticks.getJSONArray(i-1).getDouble(4);
 
-                double pe2Open = pe2Ticks.getJSONArray(i).getDouble(1);
-                double pe2Close = pe2Ticks.getJSONArray(i).getDouble(4);
+                double pe2Open = pe2Ticks.getJSONArray(i-1).getDouble(1);
+                double pe2Close = pe2Ticks.getJSONArray(i-1).getDouble(4);
 
-                double pe3Open = pe3Ticks.getJSONArray(i).getDouble(1);
-                double pe3Close = pe3Ticks.getJSONArray(i).getDouble(4);
+                double pe3Open = pe3Ticks.getJSONArray(i-1).getDouble(1);
+                double pe3Close = pe3Ticks.getJSONArray(i-1).getDouble(4);
 
-                double pe4Open = pe4Ticks.getJSONArray(i).getDouble(1);
-                double pe4Close = pe4Ticks.getJSONArray(i).getDouble(4);
+                double pe4Open = pe4Ticks.getJSONArray(i-1).getDouble(1);
+                double pe4Close = pe4Ticks.getJSONArray(i-1).getDouble(4);
 
-                double pe5Open = pe5Ticks.getJSONArray(i).getDouble(1);
-                double pe5Close = pe5Ticks.getJSONArray(i).getDouble(4);
+                double pe5Open = pe5Ticks.getJSONArray(i-1).getDouble(1);
+                double pe5Close = pe5Ticks.getJSONArray(i-1).getDouble(4);
+                double pe5CurrentOpen = pe5Ticks.getJSONArray(i).getDouble(1);
 
-                double niftyCandleMove = close - open;
-                double optionDeltaMomentum = niftyCandleMove * optionDelta;
+                double indexCandleMove = close - open;
+                double optionDeltaMomentum = indexCandleMove * optionDelta;
                 
                 
                 double ce1 = (ce1Close - ce1Open);
@@ -195,14 +206,14 @@ public class IndexToOptionMomentumCorrelation {
                 ce1Total = ce1Total + ce1;
                 ce2Total = ce2Total + ce2;
                 ce3Total = ce3Total + ce3;
-                ce4Total = ce3Total + ce4;
-                ce5Total = ce3Total + ce5;
+                ce4Total = ce4Total + ce4;
+                ce5Total = ce5Total + ce5;
                 pe1Total = pe1Total + pe1;
                 pe2Total = pe2Total + pe2;
                 pe3Total = pe3Total + pe3;
-                pe4Total = pe3Total + pe4;
-                pe5Total = pe3Total + pe5;
-
+                pe4Total = pe4Total + pe4;
+                pe5Total = pe5Total + pe5;
+                
                 if((ce1Total + ce2Total + ce3Total + ce4Total + ce5Total) > (pe1Total + pe2Total + pe3Total + pe4Total + pe5Total) && orderType != "BUY") {
                     // System.out.println(ce1ScriptName + "," + ce2ScriptName + "," + ce3ScriptName + "," + ce4ScriptName + ","+ ce5ScriptName);
                     // System.out.println(pe1ScriptName + "," + pe2ScriptName + "," + pe3ScriptName + "," + pe4ScriptName + ","+ pe5ScriptName);
@@ -210,16 +221,16 @@ public class IndexToOptionMomentumCorrelation {
                     orderType = "BUY";
                     lastOrderTime = time;
                     if(Positions.noOfPositions() == 0) {
-                        Positions.placeOrder(time,ce3ScriptName, "sell", qty, ce3Close, 0.0);
-                        Positions.placeOrder(time,pe3ScriptName, "sell", qty*2, pe3Close, 0.0);
+                        Positions.placeOrder(time,ce5ScriptName, "sell", qty, ce5CurrentOpen, 0.0);
+                        Positions.placeOrder(time,pe5ScriptName, "sell", qty*2, pe5CurrentOpen, 0.0);
                     }
-                    if(  Positions.positionExists(ce3ScriptName, "sell", qty*2)  &&  Positions.positionExists(pe3ScriptName, "sell", qty) )  {
-                        Positions.placeOrder(time,ce3ScriptName, "buy", qty*2, 0.0, ce3Close);
-                        Positions.placeOrder(time,pe3ScriptName, "buy", qty, 0.0, pe3Close);
+                    if(  Positions.positionExists(ce5ScriptName, "sell", qty*2)  &&  Positions.positionExists(pe5ScriptName, "sell", qty) )  {
+                        Positions.placeOrder(time,ce5ScriptName, "buy", qty*2, 0.0, ce5CurrentOpen);
+                        Positions.placeOrder(time,pe5ScriptName, "buy", qty, 0.0, pe5CurrentOpen);
 
 
-                        Positions.placeOrder(time,ce3ScriptName, "sell", qty, ce3Close, 0.0);
-                        Positions.placeOrder(time,pe3ScriptName, "sell", qty*2, pe3Close, 0.0);
+                        Positions.placeOrder(time,ce5ScriptName, "sell", qty, ce5CurrentOpen, 0.0);
+                        Positions.placeOrder(time,pe5ScriptName, "sell", qty*2, pe5CurrentOpen, 0.0);
                     }
                     noOfBuyOrders++;
                     // Positions.printPositions();
@@ -231,16 +242,16 @@ public class IndexToOptionMomentumCorrelation {
                     orderType = "SELL";
                     lastOrderTime = time;
                     if(Positions.noOfPositions() == 0) {
-                        Positions.placeOrder(time,ce3ScriptName, "sell", qty*2, ce3Close, 0.0);
-                        Positions.placeOrder(time,pe3ScriptName, "sell", qty, pe3Close, 0.0);
+                        Positions.placeOrder(time,ce5ScriptName, "sell", qty*2, ce5CurrentOpen, 0.0);
+                        Positions.placeOrder(time,pe5ScriptName, "sell", qty, pe5CurrentOpen, 0.0);
                     }
-                    if(  Positions.positionExists(ce3ScriptName, "sell", qty)  &&  Positions.positionExists(pe3ScriptName, "sell", qty*2) )  {
-                        Positions.placeOrder(time,ce3ScriptName, "buy", qty, 0.0, ce3Close);
-                        Positions.placeOrder(time,pe3ScriptName, "buy", qty*2, 0.0, pe3Close);
+                    if(  Positions.positionExists(ce5ScriptName, "sell", qty)  &&  Positions.positionExists(pe5ScriptName, "sell", qty*2) )  {
+                        Positions.placeOrder(time,ce5ScriptName, "buy", qty, 0.0, ce5CurrentOpen);
+                        Positions.placeOrder(time,pe5ScriptName, "buy", qty*2, 0.0, pe5CurrentOpen);
 
 
-                        Positions.placeOrder(time,ce3ScriptName, "sell", qty*2, ce3Close, 0.0);
-                        Positions.placeOrder(time,pe3ScriptName, "sell", qty, pe3Close, 0.0);
+                        Positions.placeOrder(time,ce5ScriptName, "sell", qty*2, ce5CurrentOpen, 0.0);
+                        Positions.placeOrder(time,pe5ScriptName, "sell", qty, pe5CurrentOpen, 0.0);
                     }
                     noOfBuyOrders++;
                     // Positions.printPositions();
@@ -249,13 +260,13 @@ public class IndexToOptionMomentumCorrelation {
                     if(orderType.equalsIgnoreCase("BUY")) {
                         // Positions.placeOrder(closeTimeLastOrder,index, "sell", qty, 0.0, closePriceLastOrder);
 
-                        Positions.placeOrder(time,ce3ScriptName, "buy", qty, 0.0, ce3Close);
-                        Positions.placeOrder(time,pe3ScriptName, "buy", qty*2, 0.0, pe3Close);
+                        Positions.placeOrder(time,ce5ScriptName, "buy", qty, 0.0, ce5CurrentOpen);
+                        Positions.placeOrder(time,pe5ScriptName, "buy", qty*2, 0.0, pe5CurrentOpen);
                         // Positions.printPositions();
 
                     }else if(orderType.equalsIgnoreCase("SELL")) {
-                        Positions.placeOrder(time,ce3ScriptName, "buy", qty*2, 0.0, ce3Close);
-                        Positions.placeOrder(time,pe3ScriptName, "buy", qty, 0.0, pe3Close);
+                        Positions.placeOrder(time,ce5ScriptName, "buy", qty*2, 0.0, ce5CurrentOpen);
+                        Positions.placeOrder(time,pe5ScriptName, "buy", qty, 0.0, pe5CurrentOpen);
                         // Positions.placeOrder(closeTimeLastOrder,index, "buy", qty, 0.0, closePriceLastOrder);
                         // Positions.printPositions();
                     }
