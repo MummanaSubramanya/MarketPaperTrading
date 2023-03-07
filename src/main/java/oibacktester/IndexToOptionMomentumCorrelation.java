@@ -1,10 +1,8 @@
 package oibacktester;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -15,9 +13,8 @@ public class IndexToOptionMomentumCorrelation {
     static int candleSize = 1;
     static double optionDelta = 0.5;
     static String index = "NIFTY 50";
-    static int qty = 25;
+    static int qty = 50;
     static int INDEX_OPEN_SP = 0;
-    static ArrayList<String> indexStrikePrices = new ArrayList<String>();
     static boolean placeLiveOrders = false;
     static boolean executeExitOrder = true;
     static boolean indexMomentumTotalLog = true;
@@ -25,28 +22,15 @@ public class IndexToOptionMomentumCorrelation {
     // Logging for debug of orders placed
     static boolean printEachOrder = false;
 
-    static int noOfBuyOrders = 0;
-    static int noOfSellOrders = 0;
     static double indexMomentumTotal = 0;
     
 
     public static void main(String[] args) throws Exception{
         
         while(true) {
-            analyse(); printPositionInTableFormat(); //Positions.clearPositions(); 
             
-            
-            // System.out.println(ZerodhaWrapper.openOrderPresent("sell", "AXISBANK") );
-
-            // if(!ZerodhaWrapper.openOrderPresent("sell", "AXISBANK")) {
-            //     ZerodhaWrapper.placeOrder("SELL", qty, "AXISBANK");
-            // }else {
-            //     System.out.println("SELL PRESENT");
-            // }
-
-            // if(ZerodhaWrapper.openOrderPresent("sell", "AXISBANK")) {
-            //     ZerodhaWrapper.placeOrder("BUY", qty, "AXISBANK");
-            // }
+            analyse(); 
+            printPositionInTableFormat();
 
             Thread.sleep(2000);
         }
@@ -197,7 +181,6 @@ public class IndexToOptionMomentumCorrelation {
                 double pe5 = (pe5Close - pe5Open);
 
                 indexMomentumTotal = indexMomentumTotal + optionDeltaMomentum;
-                // System.out.println(time + " , " +indexMomentumTotal);
                 IndexToOptionMomentumCorrelation.indexMomentumTotal = indexMomentumTotal;
 
                 ce1Total = ce1Total + ce1;
@@ -302,17 +285,6 @@ public class IndexToOptionMomentumCorrelation {
                     }
                 }
             }
-            // System.out.println(lastOrderTime + ", " + orderType);
-            if(orderType.equalsIgnoreCase("BUY")) {
-                // System.out.println(lastOrderTime + " BUY ," + " NO OF ORDER = "+ (noOfBuyOrders + noOfSellOrders) + " ("+noOfBuyOrders+" + "+noOfSellOrders+")");
-            }else if(orderType.equalsIgnoreCase("SELL")){
-                // System.out.println(lastOrderTime + " SELL , " + " NO OF ORDER = "+ (noOfBuyOrders + noOfSellOrders)+ " ("+noOfBuyOrders+" + "+noOfSellOrders+")");
-            }
-
-            noOfBuyOrders = noOfBuyOrders;
-            noOfSellOrders = noOfSellOrders;
-            
-            
         }catch(Exception ex) {
             ex.printStackTrace();
         }
