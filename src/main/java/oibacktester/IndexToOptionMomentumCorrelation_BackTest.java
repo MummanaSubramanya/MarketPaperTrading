@@ -2,62 +2,61 @@ package oibacktester;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 public class IndexToOptionMomentumCorrelation {
     
-
-    static String currentDate = "2023-03-03"; // yyyy-mm-dd - ZERODHA FORMAT
+    static String currentDate = "2023-03-06"; // yyyy-mm-dd - ZERODHA FORMAT
     static String expiryDate = "23309";
     static int candleSize = 1;
     static double optionDelta = 0.5;
     static String index = "NIFTY 50";
-    static int qty = 50;
+    static int qty = 25;
     static int INDEX_OPEN_SP = 0;
     static ArrayList<String> indexStrikePrices = new ArrayList<String>();
+    static boolean placeLiveOrders = false;
+    static boolean executeExitOrder = true;
+    static boolean indexMomentumTotalLog = true;
 
-    public static void main(String[] args) {
-        // while(true) {
-            System.err.print("[");
-            analyse();
-            Positions.printPositions(); Positions.clearPositions();
+    // Logging for debug of orders placed
+    static boolean printEachOrder = false;
+
+    static int noOfBuyOrders = 0;
+    static int noOfSellOrders = 0;
+    static double indexMomentumTotal = 0;
+    
+
+    public static void main(String[] args) throws Exception{
+        
+        while(true) {
+            analyse(); printPositionInTableFormat(); //Positions.clearPositions(); 
             
-            System.out.print(",");
-            currentDate = "2023-03-02";
-            analyse();
-            Positions.printPositions(); Positions.clearPositions();
+            
+            // System.out.println(ZerodhaWrapper.openOrderPresent("sell", "AXISBANK") );
 
-            System.out.print(",");
-            currentDate = "2023-03-01";
-            analyse();
-            Positions.printPositions(); Positions.clearPositions();
+            // if(!ZerodhaWrapper.openOrderPresent("sell", "AXISBANK")) {
+            //     ZerodhaWrapper.placeOrder("SELL", qty, "AXISBANK");
+            // }else {
+            //     System.out.println("SELL PRESENT");
+            // }
 
-            System.out.print(",");
-            currentDate = "2023-02-28";
-            analyse();
-            Positions.printPositions(); Positions.clearPositions();
+            // if(ZerodhaWrapper.openOrderPresent("sell", "AXISBANK")) {
+            //     ZerodhaWrapper.placeOrder("BUY", qty, "AXISBANK");
+            // }
 
-            System.out.print(",");
-            currentDate = "2023-02-27";
-            analyse();
-            Positions.printPositions(); Positions.clearPositions();
+            Thread.sleep(2000);
+        }
 
-       
-            System.out.println("]");
-   
-        //     Thread.sleep(2000);
-        // }
-
-        // testNoOfSP();
         
     }
     public static void analyse() {
         try {
             String indexScriptCode = ZerodhaWrapper.getScriptCode(index);
             JSONArray indexTicks = getScriptData(indexScriptCode);
-
             double indexMomentumTotal = 0;
 
             String ce1ScriptName = "";
@@ -84,7 +83,6 @@ public class IndexToOptionMomentumCorrelation {
             double pe5Total = 0;
 
             int closePrice = indexTicks.getJSONArray(0).getInt(4);
-
 
             INDEX_OPEN_SP = closePrice;
             if(index.equalsIgnoreCase("NIFTY BANK")) {
@@ -113,7 +111,7 @@ public class IndexToOptionMomentumCorrelation {
                 pe5ScriptName = "NIFTY" + expiryDate + ((INDEX_OPEN_SP)/50*50)  +"PE";
             }
 
-            Map<Integer,String> ceScriptNameMap = new HashMap();
+            Map<Integer,String> ceScriptNameMap = new HashMap<Integer,String>();
             ceScriptNameMap.put(1, ce1ScriptName + "," + pe1ScriptName);
             ceScriptNameMap.put(2, ce2ScriptName + "," + pe2ScriptName);
             ceScriptNameMap.put(3, ce3ScriptName + "," + pe3ScriptName);
@@ -141,19 +139,16 @@ public class IndexToOptionMomentumCorrelation {
             JSONArray pe4Ticks = getScriptData(pe4ScriptCode);
             JSONArray pe5Ticks = getScriptData(pe5ScriptCode);
 
-            // System.out.println("Fetch of options data complete...");
-            
-
             int noOfBuyOrders = 0;
             int noOfSellOrders = 0;
-            String orderType = "";
             String lastOrderTime = "";
-
+            
+            String orderType = "";
+            
             for(int i = 1; i < indexTicks.length(); i++){
                 String time = indexTicks.getJSONArray(i-1).getString(0);
                 double open = indexTicks.getJSONArray(i-1).getDouble(1);
                 double close = indexTicks.getJSONArray(i-1).getInt(4);
-
                 
                 double ce1Open = ce1Ticks.getJSONArray(i-1).getDouble(1);
                 double ce1Close = ce1Ticks.getJSONArray(i-1).getDouble(4);
@@ -190,7 +185,6 @@ public class IndexToOptionMomentumCorrelation {
                 double indexCandleMove = close - open;
                 double optionDeltaMomentum = indexCandleMove * optionDelta;
                 
-                
                 double ce1 = (ce1Close - ce1Open);
                 double ce2 = (ce2Close - ce2Open);
                 double ce3 = (ce3Close - ce3Open);
@@ -203,6 +197,9 @@ public class IndexToOptionMomentumCorrelation {
                 double pe5 = (pe5Close - pe5Open);
 
                 indexMomentumTotal = indexMomentumTotal + optionDeltaMomentum;
+                // System.out.println(time + " , " +indexMomentumTotal);
+                IndexToOptionMomentumCorrelation.indexMomentumTotal = indexMomentumTotal;
+
                 ce1Total = ce1Total + ce1;
                 ce2Total = ce2Total + ce2;
                 ce3Total = ce3Total + ce3;
@@ -213,80 +210,135 @@ public class IndexToOptionMomentumCorrelation {
                 pe3Total = pe3Total + pe3;
                 pe4Total = pe4Total + pe4;
                 pe5Total = pe5Total + pe5;
-                
+
                 if((ce1Total + ce2Total + ce3Total + ce4Total + ce5Total) > (pe1Total + pe2Total + pe3Total + pe4Total + pe5Total) && orderType != "BUY") {
-                    // System.out.println(ce1ScriptName + "," + ce2ScriptName + "," + ce3ScriptName + "," + ce4ScriptName + ","+ ce5ScriptName);
-                    // System.out.println(pe1ScriptName + "," + pe2ScriptName + "," + pe3ScriptName + "," + pe4ScriptName + ","+ pe5ScriptName);
-                
                     orderType = "BUY";
                     lastOrderTime = time;
                     if(Positions.noOfPositions() == 0) {
+                        if(placeLiveOrders) {
+                            if(!ZerodhaWrapper.openOrderPresent("sell", ce5ScriptName) && !ZerodhaWrapper.openOrderPresent("sell", pe5ScriptName)) {
+                                ZerodhaWrapper.placeOrder("SELL", qty, ce5ScriptName);
+                                ZerodhaWrapper.placeOrder("SELL", qty*2, pe5ScriptName);
+                            }
+                        }
+
                         Positions.placeOrder(time,ce5ScriptName, "sell", qty, ce5CurrentOpen, 0.0);
                         Positions.placeOrder(time,pe5ScriptName, "sell", qty*2, pe5CurrentOpen, 0.0);
+                        if(printEachOrder) {
+                            Positions.printPositions();
+                        }
+                        
                     }
                     if(  Positions.positionExists(ce5ScriptName, "sell", qty*2)  &&  Positions.positionExists(pe5ScriptName, "sell", qty) )  {
+                        if(placeLiveOrders) {
+                            if(ZerodhaWrapper.openOrderPresent("sell", ce5ScriptName) && ZerodhaWrapper.openOrderPresent("sell", pe5ScriptName)) {
+                                ZerodhaWrapper.placeOrder("BUY", qty*2, ce5ScriptName);
+                                ZerodhaWrapper.placeOrder("BUY", qty, pe5ScriptName);
+                                ZerodhaWrapper.placeOrder("SELL", qty, ce5ScriptName);
+                                ZerodhaWrapper.placeOrder("SELL", qty*2, pe5ScriptName);
+                            }
+                        }
                         Positions.placeOrder(time,ce5ScriptName, "buy", qty*2, 0.0, ce5CurrentOpen);
                         Positions.placeOrder(time,pe5ScriptName, "buy", qty, 0.0, pe5CurrentOpen);
 
-
                         Positions.placeOrder(time,ce5ScriptName, "sell", qty, ce5CurrentOpen, 0.0);
                         Positions.placeOrder(time,pe5ScriptName, "sell", qty*2, pe5CurrentOpen, 0.0);
+                        if(printEachOrder) {
+                            Positions.printPositions();
+                        }
+
                     }
                     noOfBuyOrders++;
-                    // Positions.printPositions();
-                }else if( (ce1Total + ce2Total + ce3Total+ ce4Total + ce5Total) < (pe1Total + pe2Total + pe3Total  + pe4Total + pe5Total) && orderType != "SELL" ){
-                    // System.out.println(ce1ScriptName + "," + ce2ScriptName + "," + ce3ScriptName + "," + ce4ScriptName + ","+ ce5ScriptName);
-                    // System.out.println(pe1ScriptName + "," + pe2ScriptName + "," + pe3ScriptName + "," + pe4ScriptName + ","+ pe5ScriptName);
-                
-
+                 }else if( (ce1Total + ce2Total + ce3Total+ ce4Total + ce5Total) < (pe1Total + pe2Total + pe3Total  + pe4Total + pe5Total) && orderType != "SELL" ){
                     orderType = "SELL";
                     lastOrderTime = time;
                     if(Positions.noOfPositions() == 0) {
+                        if(placeLiveOrders) {
+                            if(!ZerodhaWrapper.openOrderPresent("sell", ce5ScriptName) && !ZerodhaWrapper.openOrderPresent("sell", pe5ScriptName)) {
+                                ZerodhaWrapper.placeOrder("SELL", qty*2, ce5ScriptName);
+                                ZerodhaWrapper.placeOrder("SELL", qty, pe5ScriptName);
+                            }
+                        }   
+
                         Positions.placeOrder(time,ce5ScriptName, "sell", qty*2, ce5CurrentOpen, 0.0);
                         Positions.placeOrder(time,pe5ScriptName, "sell", qty, pe5CurrentOpen, 0.0);
+                        if(printEachOrder) {
+                            Positions.printPositions();
+                        }
                     }
                     if(  Positions.positionExists(ce5ScriptName, "sell", qty)  &&  Positions.positionExists(pe5ScriptName, "sell", qty*2) )  {
+                        if(placeLiveOrders) {
+                            if(ZerodhaWrapper.openOrderPresent("sell", ce5ScriptName) && ZerodhaWrapper.openOrderPresent("sell", pe5ScriptName)) {
+                                ZerodhaWrapper.placeOrder("BUY", qty, ce5ScriptName);
+                                ZerodhaWrapper.placeOrder("BUY", qty*2, pe5ScriptName);
+                                ZerodhaWrapper.placeOrder("SELL", qty*2, ce5ScriptName);
+                                ZerodhaWrapper.placeOrder("SELL", qty, pe5ScriptName);
+                            }
+                        }
+
                         Positions.placeOrder(time,ce5ScriptName, "buy", qty, 0.0, ce5CurrentOpen);
                         Positions.placeOrder(time,pe5ScriptName, "buy", qty*2, 0.0, pe5CurrentOpen);
-
 
                         Positions.placeOrder(time,ce5ScriptName, "sell", qty*2, ce5CurrentOpen, 0.0);
                         Positions.placeOrder(time,pe5ScriptName, "sell", qty, pe5CurrentOpen, 0.0);
+                        if(printEachOrder) {
+                            Positions.printPositions();
+                        }
                     }
                     noOfBuyOrders++;
-                    // Positions.printPositions();
                 }
-                if((375/candleSize)-1 == i) {
-                    if(orderType.equalsIgnoreCase("BUY")) {
-                        // Positions.placeOrder(closeTimeLastOrder,index, "sell", qty, 0.0, closePriceLastOrder);
-
-                        Positions.placeOrder(time,ce5ScriptName, "buy", qty, 0.0, ce5CurrentOpen);
-                        Positions.placeOrder(time,pe5ScriptName, "buy", qty*2, 0.0, pe5CurrentOpen);
-                        // Positions.printPositions();
-
-                    }else if(orderType.equalsIgnoreCase("SELL")) {
-                        Positions.placeOrder(time,ce5ScriptName, "buy", qty*2, 0.0, ce5CurrentOpen);
-                        Positions.placeOrder(time,pe5ScriptName, "buy", qty, 0.0, pe5CurrentOpen);
-                        // Positions.placeOrder(closeTimeLastOrder,index, "buy", qty, 0.0, closePriceLastOrder);
-                        // Positions.printPositions();
+                if(executeExitOrder) {
+                    if((indexTicks.length()/candleSize)-1 == i) {
+                        if(orderType.equalsIgnoreCase("BUY")) {
+                            Positions.placeOrder(time,ce5ScriptName, "buy", qty, 0.0, ce5CurrentOpen);
+                            Positions.placeOrder(time,pe5ScriptName, "buy", qty*2, 0.0, pe5CurrentOpen);
+                        }else if(orderType.equalsIgnoreCase("SELL")) {
+                            Positions.placeOrder(time,ce5ScriptName, "buy", qty*2, 0.0, ce5CurrentOpen);
+                            Positions.placeOrder(time,pe5ScriptName, "buy", qty, 0.0, pe5CurrentOpen);
+                        }
+                        if(printEachOrder) {
+                            Positions.printPositions();
+                        }
                     }
                 }
             }
-            // System.out.println(indexMomentumTotal + "," + ce1Total + "," + ce2Total + "," + ce3Total + "," + ce4Total+ "," + ce5Total+ ","+ pe1Total + "," + pe2Total + "," + pe3Total + "," + pe4Total + "," + pe5Total);
+            // System.out.println(lastOrderTime + ", " + orderType);
             if(orderType.equalsIgnoreCase("BUY")) {
                 // System.out.println(lastOrderTime + " BUY ," + " NO OF ORDER = "+ (noOfBuyOrders + noOfSellOrders) + " ("+noOfBuyOrders+" + "+noOfSellOrders+")");
             }else if(orderType.equalsIgnoreCase("SELL")){
                 // System.out.println(lastOrderTime + " SELL , " + " NO OF ORDER = "+ (noOfBuyOrders + noOfSellOrders)+ " ("+noOfBuyOrders+" + "+noOfSellOrders+")");
             }
+
+            noOfBuyOrders = noOfBuyOrders;
+            noOfSellOrders = noOfSellOrders;
+            
+            
         }catch(Exception ex) {
             ex.printStackTrace();
-            // System.out.println("Continue execution....");
         }
     
     }
 
     public static JSONArray getScriptData(String scriptCode) throws Exception{
         return ZerodhaWrapper.fetchScriptDayCandles(scriptCode, currentDate, currentDate, candleSize);
+    }
+
+    public static void printPositionInTableFormat() {
+        JSONObject position = Positions.getPositions();
+        Iterator<String> keys = position.keys();
+        System.out.println();
+        while(keys.hasNext()){
+            String key = keys.next();
+            if(indexMomentumTotalLog){
+                System.out.println(key + " \t | " + position.getJSONObject(key).getString("time")  + "\t | \t"+ position.getJSONObject(key).getString("entryOrderType") + " \t | \t" + position.getJSONObject(key).getInt("quantity") + " \t | \t " + Math.round(position.getJSONObject(key).getDouble("pnl")) + " \t | \t " + Math.round(indexMomentumTotal ));
+            }else {
+                System.out.println(key + " \t | " + position.getJSONObject(key).getString("time")  + "\t | \t"+ position.getJSONObject(key).getString("entryOrderType") + " \t | \t" + position.getJSONObject(key).getInt("quantity") + " \t | \t " + Math.round(position.getJSONObject(key).getDouble("pnl")) );
+            }
+        }
+        System.out.println();
+        System.out.println("------------------------------------------------------------------------------------------------------------------------------");
+        
+
     }
 
     public static void testNoOfSP() {
