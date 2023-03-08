@@ -61,8 +61,8 @@ public class IndexToOptionMomentumCorrelation {
         printEachOrder = false;
         while(true) {
             analyse(); 
-            printPositionInTableFormat();
-            Thread.sleep(2000);
+            printPositionInTableFormat(); Positions.clearPositions();
+            Thread.sleep(4000);
         }
 
 
@@ -175,7 +175,12 @@ public class IndexToOptionMomentumCorrelation {
 
                 double ce5Open = optionsTicksMap.get(ce5ScriptName).getJSONArray(i-1).getDouble(1);
                 double ce5Close = optionsTicksMap.get(ce5ScriptName).getJSONArray(i-1).getDouble(4);
-                double ce5CurrentOpen = optionsTicksMap.get(ce5ScriptName).getJSONArray(i).getDouble(1);
+                double ce5CurrentOpen = 0;
+                try {
+                    ce5CurrentOpen = optionsTicksMap.get(ce5ScriptName).getJSONArray(i).getDouble(1);
+                }catch (Exception ex) {
+                    System.out.println("--- Exception in CE5 CURRENT OPEN FETCH ");
+                }
 
                 double pe1Open = optionsTicksMap.get(pe1ScriptName).getJSONArray(i-1).getDouble(1);
                 double pe1Close = optionsTicksMap.get(pe1ScriptName).getJSONArray(i-1).getDouble(4);
@@ -191,7 +196,13 @@ public class IndexToOptionMomentumCorrelation {
 
                 double pe5Open = optionsTicksMap.get(pe5ScriptName).getJSONArray(i-1).getDouble(1);
                 double pe5Close = optionsTicksMap.get(pe5ScriptName).getJSONArray(i-1).getDouble(4);
-                double pe5CurrentOpen = optionsTicksMap.get(pe5ScriptName).getJSONArray(i).getDouble(1);
+
+                double pe5CurrentOpen = 0;
+                try {
+                    pe5CurrentOpen = optionsTicksMap.get(pe5ScriptName).getJSONArray(i).getDouble(1);
+                }catch (Exception ex) {
+                    System.out.println("--- Exception in PE5 CURRENT OPEN FETCH ");
+                }
 
                 double indexCandleMove = close - open;
                 double optionDeltaMomentum = indexCandleMove * optionDelta;
@@ -220,6 +231,9 @@ public class IndexToOptionMomentumCorrelation {
                 pe3Total = pe3Total + pe3;
                 pe4Total = pe4Total + pe4;
                 pe5Total = pe5Total + pe5;
+
+                // System.out.println("CE TOTAL  " + (ce1Total + ce2Total + ce3Total + ce4Total + ce5Total));
+                // System.out.println("PE TOTAL  " + (pe1Total + pe2Total + pe3Total + pe4Total + pe5Total));
 
                 if((ce1Total + ce2Total + ce3Total + ce4Total + ce5Total) > (pe1Total + pe2Total + pe3Total + pe4Total + pe5Total) && orderType != "BUY") {
                     orderType = "BUY";
