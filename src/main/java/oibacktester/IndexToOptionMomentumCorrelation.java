@@ -16,7 +16,7 @@ import org.json.JSONObject;
 
 public class IndexToOptionMomentumCorrelation {
     
-    static String startDate = "2023-03-08+09:15:00"; // yyyy-mm-dd - ZERODHA FORMAT
+    static String startDate = "2023-03-08+12:20:00"; // yyyy-mm-dd - ZERODHA FORMAT
     static String endDate = "2023-03-08+15:15:00";
     static String expiryDate = "23309";
     static int candleSize = 1;
