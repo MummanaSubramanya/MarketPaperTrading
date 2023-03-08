@@ -1,14 +1,23 @@
 package oibacktester;
 
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+
+import javax.swing.text.Position;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class IndexToOptionMomentumCorrelation {
     
-    static String currentDate = "2023-03-06"; // yyyy-mm-dd - ZERODHA FORMAT
+    static String startDate = "2023-03-08+09:15:00"; // yyyy-mm-dd - ZERODHA FORMAT
+    static String endDate = "2023-03-08+15:15:00";
     static String expiryDate = "23309";
     static int candleSize = 1;
     static double optionDelta = 0.5;
@@ -18,22 +27,44 @@ public class IndexToOptionMomentumCorrelation {
     static boolean placeLiveOrders = false;
     static boolean executeExitOrder = true;
     static boolean indexMomentumTotalLog = true;
+    static double indexMomentumTotal = 0;
 
     // Logging for debug of orders placed
     static boolean printEachOrder = false;
 
-    static double indexMomentumTotal = 0;
-    
+    // Backtesting global variables
+    static double totalPnlBacktest = 0;
+    static int totalOrdersBacktest = 0;
+   
 
     public static void main(String[] args) throws Exception{
-        
-        while(true) {
+
+        // int index = 0;
+        // while(index < 60) {
+        //     analyse();
+        //     System.out.println(startDate + "," + getTotalPnl() + ","+totalOrdersBacktest);
+        //     Positions.clearPositions(); totalOrdersBacktest = 0;
             
+        //     startDate = updateTimeBy(startDate, 5);
+        //     index++;
+        // }
+
+
+
+        // Actual Live Market Execution
+
+        placeLiveOrders = false;
+        executeExitOrder = false;
+        indexMomentumTotalLog = true;
+
+        // Logging for debug of orders placed
+        printEachOrder = false;
+        while(true) {
             analyse(); 
             printPositionInTableFormat();
-
             Thread.sleep(2000);
         }
+
 
         
     }
@@ -95,13 +126,6 @@ public class IndexToOptionMomentumCorrelation {
                 pe5ScriptName = "NIFTY" + expiryDate + ((INDEX_OPEN_SP)/50*50)  +"PE";
             }
 
-            Map<Integer,String> ceScriptNameMap = new HashMap<Integer,String>();
-            ceScriptNameMap.put(1, ce1ScriptName + "," + pe1ScriptName);
-            ceScriptNameMap.put(2, ce2ScriptName + "," + pe2ScriptName);
-            ceScriptNameMap.put(3, ce3ScriptName + "," + pe3ScriptName);
-            ceScriptNameMap.put(4, ce4ScriptName + "," + pe4ScriptName);
-            ceScriptNameMap.put(5, ce5ScriptName + "," + pe5ScriptName);
-            
             String ce1ScriptCode = ZerodhaWrapper.getScriptCode(ce1ScriptName);
             String ce2ScriptCode = ZerodhaWrapper.getScriptCode(ce2ScriptName);
             String ce3ScriptCode = ZerodhaWrapper.getScriptCode(ce3ScriptName);
@@ -112,19 +136,22 @@ public class IndexToOptionMomentumCorrelation {
             String pe3ScriptCode = ZerodhaWrapper.getScriptCode(pe3ScriptName);
             String pe4ScriptCode = ZerodhaWrapper.getScriptCode(pe4ScriptName);
             String pe5ScriptCode = ZerodhaWrapper.getScriptCode(pe5ScriptName);
-            JSONArray ce1Ticks = getScriptData(ce1ScriptCode);
-            JSONArray ce2Ticks = getScriptData(ce2ScriptCode);
-            JSONArray ce3Ticks = getScriptData(ce3ScriptCode);
-            JSONArray ce4Ticks = getScriptData(ce4ScriptCode);
-            JSONArray ce5Ticks = getScriptData(ce5ScriptCode);
-            JSONArray pe1Ticks = getScriptData(pe1ScriptCode);
-            JSONArray pe2Ticks = getScriptData(pe2ScriptCode);
-            JSONArray pe3Ticks = getScriptData(pe3ScriptCode);
-            JSONArray pe4Ticks = getScriptData(pe4ScriptCode);
-            JSONArray pe5Ticks = getScriptData(pe5ScriptCode);
-
-            int noOfBuyOrders = 0;
-            int noOfSellOrders = 0;
+            
+            Map<String,JSONArray> optionsTicksMap = new HashMap<String,JSONArray>();
+            optionsTicksMap.put(ce1ScriptName, getScriptData(ce1ScriptCode));
+            optionsTicksMap.put(ce2ScriptName, getScriptData(ce2ScriptCode));
+            optionsTicksMap.put(ce3ScriptName, getScriptData(ce3ScriptCode));
+            optionsTicksMap.put(ce4ScriptName, getScriptData(ce4ScriptCode));
+            optionsTicksMap.put(ce5ScriptName, getScriptData(ce5ScriptCode));
+            optionsTicksMap.put(pe1ScriptName, getScriptData(pe1ScriptCode));
+            optionsTicksMap.put(pe2ScriptName, getScriptData(pe2ScriptCode));
+            optionsTicksMap.put(pe3ScriptName, getScriptData(pe3ScriptCode));
+            optionsTicksMap.put(pe4ScriptName, getScriptData(pe4ScriptCode));
+            optionsTicksMap.put(pe5ScriptName, getScriptData(pe5ScriptCode));
+            
+        
+            
+            
             String lastOrderTime = "";
             
             String orderType = "";
@@ -134,37 +161,37 @@ public class IndexToOptionMomentumCorrelation {
                 double open = indexTicks.getJSONArray(i-1).getDouble(1);
                 double close = indexTicks.getJSONArray(i-1).getInt(4);
                 
-                double ce1Open = ce1Ticks.getJSONArray(i-1).getDouble(1);
-                double ce1Close = ce1Ticks.getJSONArray(i-1).getDouble(4);
+                double ce1Open = optionsTicksMap.get(ce1ScriptName).getJSONArray(i-1).getDouble(1);
+                double ce1Close = optionsTicksMap.get(ce1ScriptName).getJSONArray(i-1).getDouble(4);
 
-                double ce2Open = ce2Ticks.getJSONArray(i-1).getDouble(1);
-                double ce2Close = ce2Ticks.getJSONArray(i-1).getDouble(4);
+                double ce2Open = optionsTicksMap.get(ce2ScriptName).getJSONArray(i-1).getDouble(1);
+                double ce2Close = optionsTicksMap.get(ce2ScriptName).getJSONArray(i-1).getDouble(4);
 
-                double ce3Open = ce3Ticks.getJSONArray(i-1).getDouble(1);
-                double ce3Close = ce3Ticks.getJSONArray(i-1).getDouble(4);
+                double ce3Open = optionsTicksMap.get(ce3ScriptName).getJSONArray(i-1).getDouble(1);
+                double ce3Close = optionsTicksMap.get(ce3ScriptName).getJSONArray(i-1).getDouble(4);
 
-                double ce4Open = ce4Ticks.getJSONArray(i-1).getDouble(1);
-                double ce4Close = ce4Ticks.getJSONArray(i-1).getDouble(4);
+                double ce4Open = optionsTicksMap.get(ce4ScriptName).getJSONArray(i-1).getDouble(1);
+                double ce4Close = optionsTicksMap.get(ce4ScriptName).getJSONArray(i-1).getDouble(4);
 
-                double ce5Open = ce5Ticks.getJSONArray(i-1).getDouble(1);
-                double ce5Close = ce5Ticks.getJSONArray(i-1).getDouble(4);
-                double ce5CurrentOpen = ce5Ticks.getJSONArray(i).getDouble(1);
+                double ce5Open = optionsTicksMap.get(ce5ScriptName).getJSONArray(i-1).getDouble(1);
+                double ce5Close = optionsTicksMap.get(ce5ScriptName).getJSONArray(i-1).getDouble(4);
+                double ce5CurrentOpen = optionsTicksMap.get(ce5ScriptName).getJSONArray(i).getDouble(1);
 
-                double pe1Open = pe1Ticks.getJSONArray(i-1).getDouble(1);
-                double pe1Close = pe1Ticks.getJSONArray(i-1).getDouble(4);
+                double pe1Open = optionsTicksMap.get(pe1ScriptName).getJSONArray(i-1).getDouble(1);
+                double pe1Close = optionsTicksMap.get(pe1ScriptName).getJSONArray(i-1).getDouble(4);
 
-                double pe2Open = pe2Ticks.getJSONArray(i-1).getDouble(1);
-                double pe2Close = pe2Ticks.getJSONArray(i-1).getDouble(4);
+                double pe2Open = optionsTicksMap.get(pe2ScriptName).getJSONArray(i-1).getDouble(1);
+                double pe2Close = optionsTicksMap.get(pe2ScriptName).getJSONArray(i-1).getDouble(4);
 
-                double pe3Open = pe3Ticks.getJSONArray(i-1).getDouble(1);
-                double pe3Close = pe3Ticks.getJSONArray(i-1).getDouble(4);
+                double pe3Open = optionsTicksMap.get(pe3ScriptName).getJSONArray(i-1).getDouble(1);
+                double pe3Close = optionsTicksMap.get(pe3ScriptName).getJSONArray(i-1).getDouble(4);
 
-                double pe4Open = pe4Ticks.getJSONArray(i-1).getDouble(1);
-                double pe4Close = pe4Ticks.getJSONArray(i-1).getDouble(4);
+                double pe4Open = optionsTicksMap.get(pe4ScriptName).getJSONArray(i-1).getDouble(1);
+                double pe4Close = optionsTicksMap.get(pe4ScriptName).getJSONArray(i-1).getDouble(4);
 
-                double pe5Open = pe5Ticks.getJSONArray(i-1).getDouble(1);
-                double pe5Close = pe5Ticks.getJSONArray(i-1).getDouble(4);
-                double pe5CurrentOpen = pe5Ticks.getJSONArray(i).getDouble(1);
+                double pe5Open = optionsTicksMap.get(pe5ScriptName).getJSONArray(i-1).getDouble(1);
+                double pe5Close = optionsTicksMap.get(pe5ScriptName).getJSONArray(i-1).getDouble(4);
+                double pe5CurrentOpen = optionsTicksMap.get(pe5ScriptName).getJSONArray(i).getDouble(1);
 
                 double indexCandleMove = close - open;
                 double optionDeltaMomentum = indexCandleMove * optionDelta;
@@ -210,7 +237,7 @@ public class IndexToOptionMomentumCorrelation {
                         if(printEachOrder) {
                             Positions.printPositions();
                         }
-                        
+                        totalOrdersBacktest++;
                     }
                     if(  Positions.positionExists(ce5ScriptName, "sell", qty*2)  &&  Positions.positionExists(pe5ScriptName, "sell", qty) )  {
                         if(placeLiveOrders) {
@@ -229,9 +256,8 @@ public class IndexToOptionMomentumCorrelation {
                         if(printEachOrder) {
                             Positions.printPositions();
                         }
-
+                        totalOrdersBacktest++;
                     }
-                    noOfBuyOrders++;
                  }else if( (ce1Total + ce2Total + ce3Total+ ce4Total + ce5Total) < (pe1Total + pe2Total + pe3Total  + pe4Total + pe5Total) && orderType != "SELL" ){
                     orderType = "SELL";
                     lastOrderTime = time;
@@ -248,6 +274,7 @@ public class IndexToOptionMomentumCorrelation {
                         if(printEachOrder) {
                             Positions.printPositions();
                         }
+                        totalOrdersBacktest++;
                     }
                     if(  Positions.positionExists(ce5ScriptName, "sell", qty)  &&  Positions.positionExists(pe5ScriptName, "sell", qty*2) )  {
                         if(placeLiveOrders) {
@@ -267,8 +294,8 @@ public class IndexToOptionMomentumCorrelation {
                         if(printEachOrder) {
                             Positions.printPositions();
                         }
+                        totalOrdersBacktest++;
                     }
-                    noOfBuyOrders++;
                 }
                 if(executeExitOrder) {
                     if((indexTicks.length()/candleSize)-1 == i) {
@@ -282,6 +309,7 @@ public class IndexToOptionMomentumCorrelation {
                         if(printEachOrder) {
                             Positions.printPositions();
                         }
+                        totalOrdersBacktest++;
                     }
                 }
             }
@@ -292,7 +320,7 @@ public class IndexToOptionMomentumCorrelation {
     }
 
     public static JSONArray getScriptData(String scriptCode) throws Exception{
-        return ZerodhaWrapper.fetchScriptDayCandles(scriptCode, currentDate, currentDate, candleSize);
+        return ZerodhaWrapper.fetchScriptDayCandles(scriptCode, startDate, endDate, candleSize);
     }
 
     public static void printPositionInTableFormat() {
@@ -309,8 +337,31 @@ public class IndexToOptionMomentumCorrelation {
         }
         System.out.println();
         System.out.println("------------------------------------------------------------------------------------------------------------------------------");
-        
 
+    }
+
+    public static double getTotalPnl() {
+        double totalPnl = 0;
+        JSONObject position = Positions.getPositions();
+        Iterator<String> keys = position.keys();
+        while(keys.hasNext()){
+            String key = keys.next();
+            totalPnl = totalPnl + position.getJSONObject(key).getDouble("pnl");            
+        }
+        return Math.round(totalPnl);
+    }
+
+    public static String updateTimeBy(String datetime, int incrementBy) throws Exception{
+
+        SimpleDateFormat formatter1=new SimpleDateFormat("yyyy-MM-dd+HH:mm:ss");  
+        Date date=formatter1.parse(datetime);  
+
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        cal.add(Calendar.MINUTE, incrementBy);
+        date = cal.getTime(); 
+        return formatter1.format(date);
+            
     }
 
     public static void testNoOfSP() {
