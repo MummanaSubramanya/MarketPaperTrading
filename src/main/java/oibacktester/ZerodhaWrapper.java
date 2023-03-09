@@ -19,6 +19,22 @@ public class ZerodhaWrapper {
   static String encToken = "<TOKEN>";
   public static void main(String[] args) throws Exception {
     System.out.println(getScriptCode("NIFTY 50"));
+    
+    int indexStartPrice = 38300;
+    int indexEndPrice = 44300;
+    String index = "BANKNIFTY";
+    String expiry = "23309";
+    
+    
+    while(indexStartPrice <= indexEndPrice) {
+      String scriptNameCE = index + expiry + indexStartPrice + "CE";
+      String scriptNamePE = index + expiry + indexStartPrice + "PE";
+      downloadOptionChain(scriptNameCE,"2023-02-01","2023-03-09");
+      downloadOptionChain(scriptNamePE,"2023-02-01","2023-03-09");
+
+      indexStartPrice = indexStartPrice + 100;
+    }
+    
   }
 
   public static JSONArray fetchScriptDayCandles(
@@ -236,6 +252,31 @@ public class ZerodhaWrapper {
           System.out.println(ex.getMessage());
       }
       return false;
+  }
+  
+  public static void downloadOptionChain(String scriptName, String currentDate, String endDate) throws Exception {
+    String scriptCode = getScriptCode(scriptName);
+    System.out.println(scriptCode);
+    String url =
+      "https://kite.zerodha.com/oms/instruments/historical/" +
+      scriptCode +
+      "/minute?user_id=USERID&oi=1&from=" +
+      currentDate +
+      "&to=" +
+      endDate +
+      "";
+    Unirest.setTimeouts(0, 0);
+    HttpResponse<String> response = Unirest
+      .get(url)
+      .header(
+        "authorization",
+        " enctoken "+ encToken
+      )
+      .asString();
+    JSONObject candles = new JSONObject(response.getBody());
+    PrintWriter printWriter = new PrintWriter(scriptName+".json");
+    printWriter.print(candles);
+    printWriter.close();
   }
 
 }
