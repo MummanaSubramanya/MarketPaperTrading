@@ -18,8 +18,8 @@ public class IndexToOptionMomentumCorrelation {
     static String expiryDate = "23316";
     static int candleSize = 1;
     static double optionDelta = 0.5;
-    static String index = "NIFTY BANK";
-    static int qty = 25;
+    static String index = "NIFTY 50";
+    static int qty = 50;
     static int INDEX_OPEN_SP = 0;
     static boolean placeLiveOrders = false;
     static boolean executeExitOrder = true;
@@ -185,12 +185,7 @@ public class IndexToOptionMomentumCorrelation {
 
                 double ce5Open = optionsTicksMap.get(ce5ScriptName).getJSONArray(i-1).getDouble(1);
                 double ce5Close = optionsTicksMap.get(ce5ScriptName).getJSONArray(i-1).getDouble(4);
-                double ce5CurrentOpen = 0;
-                try {
-                    ce5CurrentOpen = optionsTicksMap.get(ce5ScriptName).getJSONArray(i).getDouble(1);
-                }catch (Exception ex) {
-                    System.out.println("--- Exception in CE5 CURRENT OPEN FETCH ");
-                }
+                
 
                 double pe1Open = optionsTicksMap.get(pe1ScriptName).getJSONArray(i-1).getDouble(1);
                 double pe1Close = optionsTicksMap.get(pe1ScriptName).getJSONArray(i-1).getDouble(4);
@@ -206,13 +201,6 @@ public class IndexToOptionMomentumCorrelation {
 
                 double pe5Open = optionsTicksMap.get(pe5ScriptName).getJSONArray(i-1).getDouble(1);
                 double pe5Close = optionsTicksMap.get(pe5ScriptName).getJSONArray(i-1).getDouble(4);
-
-                double pe5CurrentOpen = 0;
-                try {
-                    pe5CurrentOpen = optionsTicksMap.get(pe5ScriptName).getJSONArray(i).getDouble(1);
-                }catch (Exception ex) {
-                    System.out.println("--- Exception in PE5 CURRENT OPEN FETCH ");
-                }
 
                 double indexCandleMove = close - open;
                 double optionDeltaMomentum = indexCandleMove * optionDelta;
@@ -245,38 +233,53 @@ public class IndexToOptionMomentumCorrelation {
                 // System.out.println("CE TOTAL  " + (ce1Total + ce2Total + ce3Total + ce4Total + ce5Total));
                 // System.out.println("PE TOTAL  " + (pe1Total + pe2Total + pe3Total + pe4Total + pe5Total));
 
+                String ceTradingScriptName = ce5ScriptName;
+                String peTradingScriptName = pe5ScriptName;
+                double ceTradingLtp = 0;
+                try {
+                    ceTradingLtp = optionsTicksMap.get(ceTradingScriptName).getJSONArray(i).getDouble(1);
+                }catch (Exception ex) {
+                    System.out.println("--- Exception in CE5 CURRENT OPEN FETCH ");
+                }
+                double peTradingLtp = 0;
+                try {
+                    peTradingLtp = optionsTicksMap.get(peTradingScriptName).getJSONArray(i).getDouble(1);
+                }catch (Exception ex) {
+                    System.out.println("--- Exception in CE5 CURRENT OPEN FETCH ");
+                }
+
                 if((ce1Total + ce2Total + ce3Total + ce4Total + ce5Total) > (pe1Total + pe2Total + pe3Total + pe4Total + pe5Total) && orderType != "BUY") {
                     orderType = "BUY";
                     lastOrderTime = time;
                     if(Positions.noOfPositions() == 0) {
                         if(placeLiveOrders) {
-                            if(!ZerodhaWrapper.openOrderPresent("sell", ce5ScriptName) && !ZerodhaWrapper.openOrderPresent("sell", pe5ScriptName)) {
-                                ZerodhaWrapper.placeOrder("SELL", qty, ce5ScriptName);
-                                ZerodhaWrapper.placeOrder("SELL", qty*2, pe5ScriptName);
+                            if(!ZerodhaWrapper.openOrderPresent("sell", ceTradingScriptName) && !ZerodhaWrapper.openOrderPresent("sell", peTradingScriptName)) {
+                                ZerodhaWrapper.placeOrder("SELL", qty, ceTradingScriptName);
+                                ZerodhaWrapper.placeOrder("SELL", qty*2, peTradingScriptName);
                             }
                         }
 
-                        Positions.placeOrder(time,ce5ScriptName, "sell", qty, ce5CurrentOpen, 0.0);
-                        Positions.placeOrder(time,pe5ScriptName, "sell", qty*2, pe5CurrentOpen, 0.0);
+                        Positions.placeOrder(time,ceTradingScriptName, "sell", qty, ceTradingLtp, 0.0);
+                        Positions.placeOrder(time,peTradingScriptName, "sell", qty*2, peTradingLtp, 0.0);
                         if(printEachOrder) {
                             Positions.printPositions();
                         }
                         totalOrdersBacktest++;
                     }
-                    if(  Positions.positionExists(ce5ScriptName, "sell", qty*2)  &&  Positions.positionExists(pe5ScriptName, "sell", qty) )  {
+                    if(  Positions.positionExists(ceTradingScriptName, "sell", qty*2)  &&  Positions.positionExists(peTradingScriptName, "sell", qty) )  {
                         if(placeLiveOrders) {
-                            if(ZerodhaWrapper.openOrderPresent("sell", ce5ScriptName) && ZerodhaWrapper.openOrderPresent("sell", pe5ScriptName)) {
-                                ZerodhaWrapper.placeOrder("BUY", qty*2, ce5ScriptName);
-                                ZerodhaWrapper.placeOrder("BUY", qty, pe5ScriptName);
-                                ZerodhaWrapper.placeOrder("SELL", qty, ce5ScriptName);
-                                ZerodhaWrapper.placeOrder("SELL", qty*2, pe5ScriptName);
+                            if(ZerodhaWrapper.openOrderPresent("sell", ceTradingScriptName) && ZerodhaWrapper.openOrderPresent("sell", peTradingScriptName)) {
+                                ZerodhaWrapper.placeOrder("BUY", qty*2, ceTradingScriptName);
+                                ZerodhaWrapper.placeOrder("BUY", qty, peTradingScriptName);
+                                ZerodhaWrapper.placeOrder("SELL", qty, ceTradingScriptName);
+                                ZerodhaWrapper.placeOrder("SELL", qty*2, peTradingScriptName);
                             }
                         }
-                        Positions.placeOrder(time,ce5ScriptName, "buy", qty*2, 0.0, ce5CurrentOpen);
-                        Positions.placeOrder(time,pe5ScriptName, "buy", qty, 0.0, pe5CurrentOpen);
+                        Positions.placeOrder(time,ceTradingScriptName, "buy", qty*2, 0.0, ceTradingLtp);
+                        Positions.placeOrder(time,peTradingScriptName, "buy", qty, 0.0, peTradingLtp);
 
-                        Positions.placeOrder(time,ce5ScriptName, "sell", qty, ce5CurrentOpen, 0.0);
-                        Positions.placeOrder(time,pe5ScriptName, "sell", qty*2, pe5CurrentOpen, 0.0);
+                        Positions.placeOrder(time,ceTradingScriptName, "sell", qty, ceTradingLtp, 0.0);
+                        Positions.placeOrder(time,peTradingScriptName, "sell", qty*2, peTradingLtp, 0.0);
                         if(printEachOrder) {
                             Positions.printPositions();
                         }
@@ -287,34 +290,34 @@ public class IndexToOptionMomentumCorrelation {
                     lastOrderTime = time;
                     if(Positions.noOfPositions() == 0) {
                         if(placeLiveOrders) {
-                            if(!ZerodhaWrapper.openOrderPresent("sell", ce5ScriptName) && !ZerodhaWrapper.openOrderPresent("sell", pe5ScriptName)) {
-                                ZerodhaWrapper.placeOrder("SELL", qty*2, ce5ScriptName);
-                                ZerodhaWrapper.placeOrder("SELL", qty, pe5ScriptName);
+                            if(!ZerodhaWrapper.openOrderPresent("sell", ceTradingScriptName) && !ZerodhaWrapper.openOrderPresent("sell", peTradingScriptName)) {
+                                ZerodhaWrapper.placeOrder("SELL", qty*2, ceTradingScriptName);
+                                ZerodhaWrapper.placeOrder("SELL", qty, peTradingScriptName);
                             }
                         }   
 
-                        Positions.placeOrder(time,ce5ScriptName, "sell", qty*2, ce5CurrentOpen, 0.0);
-                        Positions.placeOrder(time,pe5ScriptName, "sell", qty, pe5CurrentOpen, 0.0);
+                        Positions.placeOrder(time,ceTradingScriptName, "sell", qty*2, ceTradingLtp, 0.0);
+                        Positions.placeOrder(time,peTradingScriptName, "sell", qty, peTradingLtp, 0.0);
                         if(printEachOrder) {
                             Positions.printPositions();
                         }
                         totalOrdersBacktest++;
                     }
-                    if(  Positions.positionExists(ce5ScriptName, "sell", qty)  &&  Positions.positionExists(pe5ScriptName, "sell", qty*2) )  {
+                    if(  Positions.positionExists(ceTradingScriptName, "sell", qty)  &&  Positions.positionExists(peTradingScriptName, "sell", qty*2) )  {
                         if(placeLiveOrders) {
-                            if(ZerodhaWrapper.openOrderPresent("sell", ce5ScriptName) && ZerodhaWrapper.openOrderPresent("sell", pe5ScriptName)) {
-                                ZerodhaWrapper.placeOrder("BUY", qty, ce5ScriptName);
-                                ZerodhaWrapper.placeOrder("BUY", qty*2, pe5ScriptName);
-                                ZerodhaWrapper.placeOrder("SELL", qty*2, ce5ScriptName);
-                                ZerodhaWrapper.placeOrder("SELL", qty, pe5ScriptName);
+                            if(ZerodhaWrapper.openOrderPresent("sell", ceTradingScriptName) && ZerodhaWrapper.openOrderPresent("sell", peTradingScriptName)) {
+                                ZerodhaWrapper.placeOrder("BUY", qty, ceTradingScriptName);
+                                ZerodhaWrapper.placeOrder("BUY", qty*2, peTradingScriptName);
+                                ZerodhaWrapper.placeOrder("SELL", qty*2, ceTradingScriptName);
+                                ZerodhaWrapper.placeOrder("SELL", qty, peTradingScriptName);
                             }
                         }
 
-                        Positions.placeOrder(time,ce5ScriptName, "buy", qty, 0.0, ce5CurrentOpen);
-                        Positions.placeOrder(time,pe5ScriptName, "buy", qty*2, 0.0, pe5CurrentOpen);
+                        Positions.placeOrder(time,ceTradingScriptName, "buy", qty, 0.0, ceTradingLtp);
+                        Positions.placeOrder(time,peTradingScriptName, "buy", qty*2, 0.0, peTradingLtp);
 
-                        Positions.placeOrder(time,ce5ScriptName, "sell", qty*2, ce5CurrentOpen, 0.0);
-                        Positions.placeOrder(time,pe5ScriptName, "sell", qty, pe5CurrentOpen, 0.0);
+                        Positions.placeOrder(time,ceTradingScriptName, "sell", qty*2, ceTradingLtp, 0.0);
+                        Positions.placeOrder(time,peTradingScriptName, "sell", qty, peTradingLtp, 0.0);
                         if(printEachOrder) {
                             Positions.printPositions();
                         }
@@ -324,11 +327,11 @@ public class IndexToOptionMomentumCorrelation {
                 if(executeExitOrder) {
                     if((indexTicks.length()/candleSize)-1 == i) {
                         if(orderType.equalsIgnoreCase("BUY")) {
-                            Positions.placeOrder(time,ce5ScriptName, "buy", qty, 0.0, ce5CurrentOpen);
-                            Positions.placeOrder(time,pe5ScriptName, "buy", qty*2, 0.0, pe5CurrentOpen);
+                            Positions.placeOrder(time,ceTradingScriptName, "buy", qty, 0.0, ceTradingLtp);
+                            Positions.placeOrder(time,peTradingScriptName, "buy", qty*2, 0.0, peTradingLtp);
                         }else if(orderType.equalsIgnoreCase("SELL")) {
-                            Positions.placeOrder(time,ce5ScriptName, "buy", qty*2, 0.0, ce5CurrentOpen);
-                            Positions.placeOrder(time,pe5ScriptName, "buy", qty, 0.0, pe5CurrentOpen);
+                            Positions.placeOrder(time,ceTradingScriptName, "buy", qty*2, 0.0, ceTradingLtp);
+                            Positions.placeOrder(time,peTradingScriptName, "buy", qty, 0.0, peTradingLtp);
                         }
                         if(printEachOrder) {
                             Positions.printPositions();
