@@ -8,21 +8,18 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-
-import javax.swing.text.Position;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class IndexToOptionMomentumCorrelation {
     
-    static String startDate = "2023-03-08+12:20:00"; // yyyy-mm-dd - ZERODHA FORMAT
-    static String endDate = "2023-03-08+15:15:00";
-    static String expiryDate = "23309";
+    static String startDate = "2023-03-10+09:15:00"; // yyyy-mm-dd - ZERODHA FORMAT
+    static String endDate = "2023-03-10+15:15:00";
+    static String expiryDate = "23316";
     static int candleSize = 1;
     static double optionDelta = 0.5;
-    static String index = "NIFTY 50";
-    static int qty = 50;
+    static String index = "NIFTY BANK";
+    static int qty = 25;
     static int INDEX_OPEN_SP = 0;
     static boolean placeLiveOrders = false;
     static boolean executeExitOrder = true;
@@ -36,34 +33,47 @@ public class IndexToOptionMomentumCorrelation {
     static double totalPnlBacktest = 0;
     static int totalOrdersBacktest = 0;
    
-
+    static ArrayList<String> dates = new ArrayList<String>();
+    
     public static void main(String[] args) throws Exception{
+        // dates.add("2023-02-27");
+        // dates.add("2023-02-28");
+        // dates.add("2023-03-01");
+        // dates.add("2023-03-02");
+        // dates.add("2023-03-03");
+        // dates.add("2023-03-08");
+        // dates.add("2023-03-09");
+        dates.add("2023-03-10");
 
-        // int index = 0;
-        // while(index < 60) {
-        //     analyse();
-        //     System.out.println(startDate + "," + getTotalPnl() + ","+totalOrdersBacktest);
-        //     Positions.clearPositions(); totalOrdersBacktest = 0;
+        for(int j = 0; j < dates.size(); j++) {
+            startDate = dates.get(j)+"+09:15:00";
+            endDate = dates.get(j)+"+15:15:00";
             
-        //     startDate = updateTimeBy(startDate, 5);
-        //     index++;
-        // }
-
+            int index = 0;
+            while(index < 60) {
+                analyse();
+                System.out.println(startDate + "," + getTotalPnl() + ","+totalOrdersBacktest);
+                Positions.clearPositions(); totalOrdersBacktest = 0;
+                
+                startDate = updateTimeBy(startDate, 5);
+                index++;
+            }
+        }
 
 
         // Actual Live Market Execution
 
-        placeLiveOrders = false;
-        executeExitOrder = false;
-        indexMomentumTotalLog = true;
+        // placeLiveOrders = false;
+        // executeExitOrder = false;
+        // indexMomentumTotalLog = true;
 
-        // Logging for debug of orders placed
-        printEachOrder = false;
-        while(true) {
-            analyse(); 
-            printPositionInTableFormat(); Positions.clearPositions();
-            Thread.sleep(4000);
-        }
+        // // Logging for debug of orders placed
+        // printEachOrder = false;
+        // while(true) {
+        //     analyse(); 
+        //     printPositionInTableFormat(); Positions.clearPositions();
+        //     Thread.sleep(4000);
+        // }
 
 
         
